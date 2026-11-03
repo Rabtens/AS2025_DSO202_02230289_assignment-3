@@ -1,0 +1,13 @@
+apiVersion: v2
+name: task-tracker
+description: Task Tracker (frontend, backend, PostgreSQL StatefulSet, Ingress, RBAC, optional Istio policy) for DSO202 Assignment 3
+type: application
+version: 0.1.0
+appVersion: "1.0"
+kubeVersion: ">=1.30.0-0"
+keywords:
+  - dso202
+  - task-tracker
+maintainers:
+  - name: Kuenzang
+    email: 02230289.cst@rub.edu.bt

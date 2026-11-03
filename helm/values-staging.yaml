@@ -1,0 +1,8 @@
+environment: staging
+host: staging.tasktracker.local
+secret:
+  dbPassword: StagePass2026
+backend:
+  replicaCount: 2
+frontend:
+  replicaCount: 2

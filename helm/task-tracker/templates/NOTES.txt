@@ -1,0 +1,14 @@
+Release {{ .Release.Name }} (revision {{ .Release.Revision }}) installed in namespace {{ .Release.Namespace }}.
+Environment: {{ include "task-tracker.environment" . }}   backend replicas: {{ .Values.backend.replicaCount }}   frontend replicas: {{ .Values.frontend.replicaCount }}
+
+1. Create the TLS secret once per namespace:
+   openssl req -x509 -nodes -newkey rsa:2048 -days 365 -keyout /tmp/tt.key -out /tmp/tt.crt \
+     -subj "/CN={{ .Values.host }}/O=DSO202" -addext "subjectAltName=DNS:{{ .Values.host }}"
+   kubectl create secret tls {{ .Values.ingress.tlsSecretName }} --cert=/tmp/tt.crt --key=/tmp/tt.key -n {{ .Release.Namespace }}
+
+2. Reach the app through the ingress controller:
+   kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8443:443
+   curl -k --resolve {{ .Values.host }}:8443:127.0.0.1 https://{{ .Values.host }}:8443/backend/api/status
+
+3. Run the chart test:
+   helm test {{ .Release.Name }} -n {{ .Release.Namespace }}

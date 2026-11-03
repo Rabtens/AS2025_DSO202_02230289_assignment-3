@@ -1,0 +1,7 @@
+# JSON 6902: exact paths, applied to both Ingress objects.
+- op: replace
+  path: /spec/rules/0/host
+  value: dev.tasktracker.local
+- op: replace
+  path: /spec/tls/0/hosts/0
+  value: dev.tasktracker.local

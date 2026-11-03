@@ -1,0 +1,28 @@
+# BASE = what is shared by every environment (dev, staging, prod).
+# No namespace and no environment-specific value lives here; overlays add those.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - rbac.yaml
+  - database.yaml
+  - backend.yaml
+  - frontend.yaml
+  - ingress.yaml
+
+# Generated resources. Overlays use `behavior: merge` to change single keys.
+# The name hash is disabled on purpose: rbac.yaml pins the ConfigMap name with
+# `resourceNames`, and the TaskBackup operator (Assignment 2) looks the Secret up
+# by its fixed name `task-tracker-secret`. Both would break with a hash suffix.
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: task-tracker-config
+    envs:
+      - config.env
+
+secretGenerator:
+  - name: task-tracker-secret
+    envs:
+      - secret.env

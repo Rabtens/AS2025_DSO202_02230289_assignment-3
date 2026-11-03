@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    {{- include "task-tracker.labels" . | nindent 4 }}
+    app: task-tracker
+    tier: frontend
+spec:
+  replicas: {{ .Values.frontend.replicaCount }}
+  selector:
+    matchLabels:
+      app: task-tracker
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        {{- include "task-tracker.labels" . | nindent 8 }}
+        app: task-tracker
+        tier: frontend
+        version: v1
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: frontend-sa
+      containers:
+        - name: frontend
+          image: {{ include "task-tracker.image" (dict "image" .Values.frontend.image "root" .) | quote }}
+          imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: BACKEND_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: task-tracker-config
+                  key: BACKEND_URL
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-svc
+  labels:
+    {{- include "task-tracker.labels" . | nindent 4 }}
+    app: task-tracker
+    tier: frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: task-tracker
+    tier: frontend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

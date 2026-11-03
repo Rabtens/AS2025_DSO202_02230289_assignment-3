@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "task-tracker values",
+  "type": "object",
+  "required": ["environment", "host", "secret", "backend", "frontend", "database"],
+  "properties": {
+    "environment": { "enum": ["", "dev", "staging", "prod"] },
+    "host": { "type": "string", "minLength": 3 },
+    "config": {
+      "type": "object",
+      "properties": {
+        "dbPort": { "type": "string" },
+        "appPort": { "type": "string" }
+      }
+    },
+    "secret": {
+      "type": "object",
+      "required": ["dbUser", "dbPassword"],
+      "properties": {
+        "dbUser": { "type": "string", "minLength": 1 },
+        "dbPassword": { "type": "string" }
+      }
+    },
+    "database": {
+      "type": "object",
+      "properties": {
+        "partition": { "type": "integer", "minimum": 0 },
+        "storage": { "type": "string", "pattern": "^[0-9]+(Mi|Gi)$" }
+      }
+    },
+    "backend": {
+      "type": "object",
+      "required": ["replicaCount"],
+      "properties": {
+        "replicaCount": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "image": {
+          "type": "object",
+          "properties": { "tag": { "type": "string" } }
+        }
+      }
+    },
+    "frontend": {
+      "type": "object",
+      "required": ["replicaCount"],
+      "properties": {
+        "replicaCount": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "image": {
+          "type": "object",
+          "properties": { "tag": { "type": "string" } }
+        }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "rateLimitRps": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "rbac": { "type": "object", "properties": { "enabled": { "type": "boolean" } } },
+    "istio": { "type": "object", "properties": { "enabled": { "type": "boolean" } } }
+  }
+}

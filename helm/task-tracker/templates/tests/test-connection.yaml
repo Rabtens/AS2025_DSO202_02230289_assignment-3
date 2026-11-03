@@ -1,0 +1,29 @@
+{{- /* helm test: checks that the backend answers and reports a database connection. */}}
+{{- if not .Values.istio.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: task-tracker-test-connection
+  labels:
+    {{- include "task-tracker.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  restartPolicy: Never
+  containers:
+    - name: wget
+      image: busybox:1.37
+      command:
+        - sh
+        - -c
+        - |
+          wget -qO- http://backend-svc:8080/api/status | grep '"db":"connected"'
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          cpu: 50m
+          memory: 32Mi
+{{- end }}

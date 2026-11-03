@@ -1,0 +1,19 @@
+environment: prod
+host: tasktracker.local
+# Demo value only. In real production pass the password from a secret manager,
+# e.g. --set-string secret.dbPassword="$PROD_DB_PASSWORD", and never commit it.
+secret:
+  dbPassword: ProdPass2026
+backend:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+frontend:
+  replicaCount: 3
+istio:
+  enabled: true

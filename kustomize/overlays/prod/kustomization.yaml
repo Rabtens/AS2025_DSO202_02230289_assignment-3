@@ -1,0 +1,63 @@
+# PROD overlay: more replicas, bigger limits, Istio mesh policy, edge->mesh annotations.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - ../../istio
+  - namespace.yaml
+
+namespace: dso202-prod
+
+labels:
+  - pairs:
+      app.kubernetes.io/environment: prod
+    includeSelectors: false
+    includeTemplates: true
+
+replicas:
+  - name: backend
+    count: 3
+  - name: frontend
+    count: 3
+
+images:
+  - name: sarojsanyasi/dso202-backend
+    newTag: "1.0"
+  - name: sarojsanyasi/dso202-frontend
+    newTag: "1.0"
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: task-tracker-config
+    behavior: merge
+    literals:
+      - CORS_ORIGIN=https://tasktracker.local
+
+# Demo value only. Real production credentials must come from a secret manager
+# (Sealed Secrets, External Secrets, ...), never from Git.
+secretGenerator:
+  - name: task-tracker-secret
+    behavior: merge
+    literals:
+      - DB_PASSWORD=ProdPass2026
+      - POSTGRES_PASSWORD=ProdPass2026
+
+patches:
+  # strategic merge: "speaks Kubernetes" -> resources for the backend
+  - path: patch-resources.yaml
+  # strategic merge: send ingress traffic through the mesh (see Assignment 2, 2.5)
+  - path: patch-ingress-mesh.yaml
+  # JSON 6902: replace the placeholder namespace in the SPIFFE principals
+  - target:
+      kind: AuthorizationPolicy
+      name: db-allow-backend-and-backups
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/from/0/source/principals/0
+        value: cluster.local/ns/dso202-prod/sa/backend-sa
+      - op: replace
+        path: /spec/rules/0/from/0/source/principals/1
+        value: cluster.local/ns/dso202-prod/sa/taskbackup-runner

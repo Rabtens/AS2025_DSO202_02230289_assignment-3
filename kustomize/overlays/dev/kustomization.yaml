@@ -1,0 +1,48 @@
+# DEV overlay: thin. Only what differs from the base.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - namespace.yaml
+
+namespace: dso202-dev
+
+labels:
+  - pairs:
+      app.kubernetes.io/environment: dev
+    includeSelectors: false
+    includeTemplates: true
+
+replicas:
+  - name: backend
+    count: 1
+  - name: frontend
+    count: 1
+
+images:
+  - name: sarojsanyasi/dso202-backend
+    newTag: "1.0"
+  - name: sarojsanyasi/dso202-frontend
+    newTag: "1.0"
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: task-tracker-config
+    behavior: merge
+    literals:
+      - CORS_ORIGIN=https://dev.tasktracker.local
+
+secretGenerator:
+  - name: task-tracker-secret
+    behavior: merge
+    literals:
+      - DB_PASSWORD=DevPass2026
+      - POSTGRES_PASSWORD=DevPass2026
+
+patches:
+  - path: patch-ingress-host.yaml
+    target:
+      kind: Ingress

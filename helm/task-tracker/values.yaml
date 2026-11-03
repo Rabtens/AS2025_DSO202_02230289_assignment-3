@@ -1,0 +1,84 @@
+# Default values of the task-tracker chart.
+# Per-environment files (values-dev.yaml ...) override only what differs.
+
+# Environment name (dev | staging | prod). Required: the chart refuses to render without it.
+environment: ""
+
+# Public host name used by the Ingress, the TLS block and CORS.
+host: tasktracker.local
+
+# Application configuration (becomes ConfigMap task-tracker-config).
+config:
+  dbHost: db-0.db-headless
+  dbPort: "5432"
+  dbName: taskdb
+  appPort: "8080"
+  backendUrl: /backend
+
+# Credentials (becomes Secret task-tracker-secret).
+# No default password on purpose: pass one with -f or --set secret.dbPassword=...
+secret:
+  dbUser: taskuser
+  dbPassword: ""
+
+database:
+  image:
+    repository: sarojsanyasi/dso202-db
+    tag: "1.0"
+  storage: 1Gi
+  storageClassName: standard
+  partition: 0
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+backend:
+  replicaCount: 2
+  image:
+    repository: sarojsanyasi/dso202-backend
+    tag: ""            # empty = .Chart.AppVersion
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+frontend:
+  replicaCount: 2
+  image:
+    repository: sarojsanyasi/dso202-frontend
+    tag: ""
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+ingress:
+  enabled: true
+  className: nginx
+  tlsSecretName: tasktracker-tls
+  rateLimitRps: 20
+
+# Least-privilege RBAC from Assignment 2 (2.3).
+rbac:
+  enabled: true
+  developerGroup: dso202-developers
+  auditorUser: auditor@cst.edu.bt
+
+# Istio mesh policy from Assignment 2 (2.5). Needs Istio installed in the cluster.
+istio:
+  enabled: false
+  ingressPrincipal: cluster.local/ns/ingress-nginx/sa/ingress-nginx
+
+nameOverride: ""

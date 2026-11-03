@@ -1,0 +1,110 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-headless
+  labels:
+    {{- include "task-tracker.labels" . | nindent 4 }}
+    app: task-tracker
+    tier: database
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: false
+  selector:
+    app: task-tracker
+    tier: database
+  ports:
+    - name: tcp-postgres
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db
+  labels:
+    {{- include "task-tracker.labels" . | nindent 4 }}
+    app: task-tracker
+    tier: database
+spec:
+  serviceName: db-headless
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: task-tracker
+      tier: database
+  template:
+    metadata:
+      labels:
+        {{- include "task-tracker.labels" . | nindent 8 }}
+        app: task-tracker
+        tier: database
+        version: v1
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: db-sa
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: db
+          image: {{ include "task-tracker.image" (dict "image" .Values.database.image "root" .) | quote }}
+          ports:
+            - name: tcp-postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: task-tracker-config
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: task-tracker-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: task-tracker-secret
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          resources:
+            {{- toYaml .Values.database.resources | nindent 12 }}
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\" -h 127.0.0.1"]
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\" -h 127.0.0.1"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: {{ .Values.database.partition }}
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          app: task-tracker
+          tier: database
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: {{ .Values.database.storageClassName }}
+        resources:
+          requests:
+            storage: {{ .Values.database.storage }}

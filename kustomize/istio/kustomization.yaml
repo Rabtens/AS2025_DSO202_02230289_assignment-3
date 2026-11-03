@@ -1,0 +1,8 @@
+# Optional mesh policy (Assignment 2, 2.5). Only the prod overlay includes it.
+# Host names are short (backend-svc), so they resolve inside whatever namespace
+# the overlay selects. Only the SPIFFE principals need a namespace; prod patches them.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - istio.yaml

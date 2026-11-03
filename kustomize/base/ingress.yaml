@@ -1,0 +1,54 @@
+# 2.2 Ingress (two objects, one host). Host name is a placeholder that every
+# overlay replaces with its own host through a JSON 6902 patch.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: task-tracker-frontend
+  labels:
+    app: task-tracker
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [tasktracker.local]
+      secretName: tasktracker-tls
+  rules:
+    - host: tasktracker.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-svc
+                port:
+                  name: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: task-tracker-backend
+  labels:
+    app: task-tracker
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/limit-rps: "20"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [tasktracker.local]
+      secretName: tasktracker-tls
+  rules:
+    - host: tasktracker.local
+      http:
+        paths:
+          - path: /backend(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: backend-svc
+                port:
+                  name: http

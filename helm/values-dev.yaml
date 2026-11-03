@@ -1,0 +1,8 @@
+environment: dev
+host: dev.tasktracker.local
+secret:
+  dbPassword: DevPass2026
+backend:
+  replicaCount: 1
+frontend:
+  replicaCount: 1
